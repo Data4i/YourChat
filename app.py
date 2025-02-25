@@ -1,7 +1,6 @@
 #others
 #langchain
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
-from pydantic import BaseModel, Field
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import HumanMessage, BaseMessage, trim_messages
 #langgraph
@@ -44,8 +43,6 @@ if character == 'Custom Character':
 st.sidebar.text(f'Character: {character}')
 
 # Initializing Chat Model
-# @st.cache_resource
-# def get_model()
 model = init_chat_model(
     'deepseek-r1-distill-llama-70b',
     model_provider='groq',
@@ -55,11 +52,6 @@ whisper_model = init_chat_model(
     'distil-whisper-large-v3-en',
     model_provider='groq',
 )
-
-# Creating the parser
-class Output(BaseModel):
-    answer: str = Field(..., title='Answer to the prompt')
-
 
 # Managing the Prompt Template
 prompt_template = ChatPromptTemplate.from_messages(
@@ -87,23 +79,24 @@ for message in st.session_state.messages:
 # Defining Workflow To Persist Memory Of Messages
 workflow = StateGraph(state_schema=State)
 
-trimmer = trim_messages(
-    max_tokens=3000,
-    strategy='last',
-    token_counter=model,
-    include_system=True,
-    allow_partial=True,
-    start_on='human',
-)
-
-def call_model(state: State):
-    trimmed_messages = trimmer.invoke(state['messages'])
-    # prompt = prompt_template.invoke({
-    #     'messages': trimmed_messages,
-    #     'character': state['character']
-    # })
-    prompt= prompt_template.invoke(state)
-    print(trimmed_messages)
+def call_model(state: State):   
+    # trin the messages that are stored as memory     
+    trimmed_messages = trim_messages(
+        messages = state['messages'],
+        max_tokens=100,
+        strategy='last',
+        token_counter=model,
+        include_system=True,
+        allow_partial=False,
+        start_on='human',
+    )
+    
+    # use those messages as prompt
+    prompt = prompt_template.invoke({
+        'messages': trimmed_messages,
+        'character': state['character']
+    })
+    
     response = model.invoke(prompt)
     return {'messages': [response]}
 
