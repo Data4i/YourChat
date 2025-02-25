@@ -1,5 +1,4 @@
 #others
-from dotenv import find_dotenv, load_dotenv
 #langchain
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from pydantic import BaseModel, Field
@@ -16,7 +15,12 @@ from typing import Sequence
 import streamlit as st
 
 
-load_dotenv(find_dotenv())
+# Load secrets from Streamlit's built-in system
+PINECONE_API_KEY = st.secrets["PINECONE_API_KEY"]
+PINECONE_ENV = st.secrets["PINECONE_ENV"]
+GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
+LANGSMITH_TRACING = st.secrets["LANGSMITH_TRACING"]
+LANGSMITH_API_KEY = st.secrets["LANGSMITH_API_KEY"]
 
 CHARACTERS = {
     'Friendly Mentor': '',
