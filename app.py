@@ -3,7 +3,7 @@
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from pydantic import BaseModel, Field
 from langchain.chat_models import init_chat_model
-from langchain_core.messages import HumanMessage, BaseMessage, SystemMessage, trim_messages
+from langchain_core.messages import HumanMessage, BaseMessage, trim_messages
 #langgraph
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import START, StateGraph
@@ -11,16 +11,11 @@ from langgraph.graph.message import add_messages
 #typing extensions
 from typing_extensions import Annotated, TypedDict
 from typing import Sequence
-#streamlit 
+#streamlit
 import streamlit as st
 
 
-# Load secrets from Streamlit's built-in system
-PINECONE_API_KEY = st.secrets["PINECONE_API_KEY"]
-PINECONE_ENV = st.secrets["PINECONE_ENV"]
 GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
-LANGSMITH_TRACING = st.secrets["LANGSMITH_TRACING"]
-LANGSMITH_API_KEY = st.secrets["LANGSMITH_API_KEY"]
 
 CHARACTERS = {
     'Friendly Mentor': '',
@@ -56,11 +51,11 @@ model = init_chat_model(
 # initiatializing the whisper model for speech to text
 whisper_model = init_chat_model(
     'distil-whisper-large-v3-en',
-    model_provider='groq'
+    model_provider='groq',
 )
 
 # Creating the parser
-class Input(BaseModel):
+class Output(BaseModel):
     answer: str = Field(..., title='Answer to the prompt')
 
 
@@ -126,6 +121,22 @@ query = st.chat_input('Pass Your Prompt 🫠')
 
 input_type = st.radio('Input Type', ['Text', 'Speech'])
 
+def get_output(app):
+    
+    try:
+        output = app.invoke(input={
+            'messages': past_messages,
+            'character': character,
+        }, config=config)
+        current_output = output['messages'][-1].content
+    except Exception as e:
+        return None
+    return current_output
+    
+    
+def format_output(ans):
+    return ans.split('</think>')[-1]
+
 if query:
     st.chat_message('user').markdown(query)
     st.session_state.messages.append({'role': 'user', 'content': query})
@@ -133,17 +144,15 @@ if query:
     input_message = [HumanMessage(query)]
     past_messages = st.session_state.messages + input_message
     
-    print(character)
-
-    output = app.invoke(input={
-        'messages': past_messages,
-        'character': character,
-    }, config=config)
-    current_output = output['messages'][-1].content
+    current_output = get_output(app)
+    formated_output = format_output(current_output)
     
+    if current_output:
+        st.chat_message('assistant').markdown(formated_output)
+        st.session_state.messages.append({'role': 'assistant', 'content': formated_output})
+    else:
+        st.error('Something went wrong! Please try again.')
     
-    st.chat_message('assistant').markdown(current_output)
-    st.session_state.messages.append({'role': 'assistant', 'content': current_output})
     
 
 
