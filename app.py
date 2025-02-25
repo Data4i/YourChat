@@ -17,12 +17,12 @@ import streamlit as st
 
 GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 
-CHARACTERS = {
-    'Friendly Mentor': '',
-    'Survival Expert': '',
-    'History Professor': '',
-    'Custom Character': '',
-}
+CHARACTERS = [
+    'Friendly Mentor',
+    'Survival Expert',
+    'History Professor',
+    'Custom Character',
+]
 
 
 
@@ -32,7 +32,7 @@ if 'messages' not in st.session_state:
     
 # Getting Characters
 st.sidebar.title('Characters')
-character = st.sidebar.selectbox('Select Character', list(CHARACTERS.keys()))
+character = st.sidebar.selectbox('Select Character', CHARACTERS)
 
 if character == 'Custom Character':
     character = None
