@@ -12,9 +12,12 @@ from typing_extensions import Annotated, TypedDict
 from typing import Sequence
 #streamlit
 import streamlit as st
+import groq
 
 
 GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
+client = groq.Client(api_key=GROQ_API_KEY)
+
 
 CHARACTERS = [
     'Friendly Mentor',
@@ -29,6 +32,43 @@ st.title('Your Chatbot 🤖')
 if 'messages' not in st.session_state:
     st.session_state.messages = [] 
     
+# Initializing Chat Model
+model = init_chat_model(
+    'deepseek-r1-distill-llama-70b',
+    model_provider='groq',
+)
+# initiatializing the whisper model for speech to text
+whisper_model = init_chat_model(
+    'distil-whisper-large-v3-en',
+    model_provider='groq',
+)
+    
+# Creating The Prompt Streamlit Component and Managing The Chat
+st.sidebar.title('Input Type')
+input_type = st.sidebar.radio('Select Type', ['Text', 'Speech']) 
+    
+
+def transcribe_audio(audio_file):
+    with open(audio_file, "rb") as file:
+        response = client.audio.transcriptions.create(
+            model="whisper-large-v3-turbo",  # or "distil-whisper-large-v3-en"
+            file=file
+        )
+    return response.text
+
+query = ''
+
+if input_type == 'Speech':
+    audio_query = st.audio_input(label='Record Your Prompt')
+    if audio_query:
+        with open("temp_audio.wav", "wb") as f:
+            f.write(audio_query.read())
+
+        query = transcribe_audio("temp_audio.wav") 
+        print(query)
+else:
+    query = st.chat_input('Pass Your Prompt 🫠')   
+ 
 # Getting Characters
 st.sidebar.title('Characters')
 character = st.sidebar.selectbox('Select Character', CHARACTERS)
@@ -42,16 +82,7 @@ if character == 'Custom Character':
 
 st.sidebar.text(f'Character: {character}')
 
-# Initializing Chat Model
-model = init_chat_model(
-    'deepseek-r1-distill-llama-70b',
-    model_provider='groq',
-)
-# initiatializing the whisper model for speech to text
-whisper_model = init_chat_model(
-    'distil-whisper-large-v3-en',
-    model_provider='groq',
-)
+
 
 # Managing the Prompt Template
 prompt_template = ChatPromptTemplate.from_messages(
@@ -111,21 +142,6 @@ app = workflow.compile(checkpointer=memory)
 
 config = {"configurable": {"thread_id": "abc123"}}
 
-# Creating The Prompt Streamlit Component and Managing The Chat
-
-st.sidebar.title('Input Type')
-input_type = st.sidebar.radio('Select Type', ['Text', 'Speech'])
-
-query = ''
-# audio_query = st.audio_input(label='Record Your Prompt')
-
-if input_type == 'Speech':
-    audio_query = st.audio_input(label='Record Your Prompt')
-    if audio_query:
-        query = whisper_model.invoke(audio_query)
-else:
-    query = st.chat_input('Pass Your Prompt 🫠')
-    
 
 # Getting The Output
 def get_output(app):
@@ -159,8 +175,3 @@ if query:
         st.session_state.messages.append({'role': 'assistant', 'content': formated_output})
     else:
         st.error('Something went wrong! Please try again.')
-    
-    
-
-
-
