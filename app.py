@@ -44,6 +44,8 @@ if character == 'Custom Character':
 st.sidebar.text(f'Character: {character}')
 
 # Initializing Chat Model
+# @st.cache_resource
+# def get_model()
 model = init_chat_model(
     'deepseek-r1-distill-llama-70b',
     model_provider='groq',
@@ -117,10 +119,22 @@ app = workflow.compile(checkpointer=memory)
 config = {"configurable": {"thread_id": "abc123"}}
 
 # Creating The Prompt Streamlit Component and Managing The Chat
-query = st.chat_input('Pass Your Prompt 🫠')
 
-input_type = st.radio('Input Type', ['Text', 'Speech'])
+st.sidebar.title('Input Type')
+input_type = st.sidebar.radio('Select Type', ['Text', 'Speech'])
 
+query = ''
+# audio_query = st.audio_input(label='Record Your Prompt')
+
+if input_type == 'Speech':
+    audio_query = st.audio_input(label='Record Your Prompt')
+    if audio_query:
+        query = whisper_model.invoke(audio_query)
+else:
+    query = st.chat_input('Pass Your Prompt 🫠')
+    
+
+# Getting The Output
 def get_output(app):
     
     try:
